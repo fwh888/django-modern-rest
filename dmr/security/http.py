@@ -16,6 +16,16 @@ if TYPE_CHECKING:
 
 
 class _HttpBasicAuth:
+    """
+    Shared parts of the sync and async http basic auth.
+
+    .. versionchanged:: 0.15.0
+
+        Added the ``auth_scheme`` prefix, which is required by default.
+        See :class:`HttpBasicSyncAuth` and :class:`HttpBasicAsyncAuth`.
+
+    """
+
     __slots__ = ('auth_scheme', 'header', 'security_scheme_name')
 
     def __init__(
@@ -32,7 +42,8 @@ class _HttpBasicAuth:
           used in the OpenAPI security scheme map
         - *header* selects the header to read the credentials from
         - *auth_scheme* is the prefix that the header value must start with,
-          it is matched exactly, so ``Basic`` won't accept ``basic``
+          it is matched exactly, so ``Basic`` won't accept ``basic``.
+          Pass an empty string to read the credentials without any prefix
         """
         self.security_scheme_name = security_scheme_name
         self.header = header
@@ -87,8 +98,15 @@ class _HttpBasicAuth:
 
     def _split_encoded_credentials(self, header: str) -> str | None:
         """Splits string like 'Basic credentials' and returns 'credentials'."""
+        if not self.auth_scheme:  # Empty scheme means "no prefix at all".
+            return header
+
         parts = header.split(' ')
         if len(parts) != 2 or parts[0] != self.auth_scheme:
+            # This header does not belong to us: it can be a header
+            # of any other auth from the chain. Raising here would fail
+            # the whole request and would not let the others even try.
+            # So, we return `None` and the next auth gets its chance.
             return None
         return parts[1]
 
@@ -129,7 +147,7 @@ class HttpBasicSyncAuth(_HttpBasicAuth, SyncAuth):
 
         The ``auth_scheme`` prefix is now required and configurable,
         it is ``Basic`` by default. Header values without a prefix
-        are not accepted anymore.
+        are only accepted with ``auth_scheme=''``.
 
     """
 
@@ -183,7 +201,7 @@ class HttpBasicAsyncAuth(_HttpBasicAuth, AsyncAuth):
 
         The ``auth_scheme`` prefix is now required and configurable,
         it is ``Basic`` by default. Header values without a prefix
-        are not accepted anymore.
+        are only accepted with ``auth_scheme=''``.
 
     """
 
