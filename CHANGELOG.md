@@ -27,6 +27,14 @@ of requirements for an API to count as public.
   use `FileResponseSpec.return_type` instead, #1278
 - Removed `FileMetadataComponent.schema_metadata`,
   now we use `SupportsFileParsing.schema_metadata` instead, #1278
+- `HttpBasicSyncAuth` and `HttpBasicAsyncAuth` now require
+  the `auth_scheme` header prefix, it is `Basic` by default
+  and is matched exactly, credentials sent without it
+  are not accepted anymore, #1330
+- `HttpBasicSyncAuth` and `HttpBasicAsyncAuth` now raise
+  `NotAuthenticatedError` when credentials have the right
+  `auth_scheme` prefix, but cannot be decoded,
+  previously the next auth in the chain was tried, #1330
 
 ### Features
 
